@@ -1,0 +1,75 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "Marketplace Hito 3 API",
+  "dateExported": "2026-05-24T00:00:00.000Z",
+  "version": "1.2",
+  "folders": [],
+  "requests": [
+    {
+      "_id": "health",
+      "name": "Health",
+      "method": "GET",
+      "url": "http://localhost:3000/api/health",
+      "headers": [],
+      "params": [],
+      "body": { "type": "json", "raw": "" }
+    },
+    {
+      "_id": "register",
+      "name": "Registrar usuario",
+      "method": "POST",
+      "url": "http://localhost:3000/api/usuarios",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"nombre\": \"Mariela Nolasco\",\n  \"email\": \"mariela@email.com\",\n  \"password\": \"123456\",\n  \"telefono\": \"+56 9 1234 5678\"\n}"
+      }
+    },
+    {
+      "_id": "login",
+      "name": "Login",
+      "method": "POST",
+      "url": "http://localhost:3000/api/login",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"mariela@email.com\",\n  \"password\": \"123456\"\n}"
+      }
+    },
+    {
+      "_id": "list-posts",
+      "name": "Listar publicaciones",
+      "method": "GET",
+      "url": "http://localhost:3000/api/publicaciones",
+      "headers": [],
+      "params": [],
+      "body": { "type": "json", "raw": "" }
+    },
+    {
+      "_id": "profile",
+      "name": "Perfil con JWT",
+      "method": "GET",
+      "url": "http://localhost:3000/api/perfil",
+      "headers": [{ "name": "Authorization", "value": "Bearer PEGAR_TOKEN_AQUI" }],
+      "params": [],
+      "body": { "type": "json", "raw": "" }
+    },
+    {
+      "_id": "create-post",
+      "name": "Crear publicación con JWT",
+      "method": "POST",
+      "url": "http://localhost:3000/api/publicaciones",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer PEGAR_TOKEN_AQUI" }
+      ],
+      "params": [],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"titulo\": \"Bicicleta Oxford\",\n  \"descripcion\": \"Bicicleta aro 29 en buen estado\",\n  \"precio\": 180000,\n  \"imagen\": \"bicicleta.jpg\",\n  \"ubicacion\": \"Maipú\",\n  \"categoria_id\": 4\n}"
+      }
+    }
+  ]
+}
