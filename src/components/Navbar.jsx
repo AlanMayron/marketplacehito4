@@ -1,4 +1,4 @@
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -12,9 +12,17 @@ import {
   faUserPlus,
   faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
+import toast from "react-hot-toast";
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const { isAuthenticated, logout } = useAppContext();
+
+  const handleLogout = () => {
+    logout();
+    toast.success("Sesión cerrada correctamente.");
+    navigate("/", { replace: true });
+  };
 
   return (
     <nav className="market-navbar">
@@ -59,7 +67,7 @@ const Navbar = () => {
         )}
 
         {isAuthenticated ? (
-          <button className="nav-button" onClick={logout}>
+          <button className="nav-button" onClick={handleLogout}>
             <FontAwesomeIcon icon={faRightFromBracket} />
             Salir
           </button>

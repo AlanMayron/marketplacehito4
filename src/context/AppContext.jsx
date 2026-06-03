@@ -1,6 +1,14 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import toast from "react-hot-toast";
 import {
   actualizarPerfil,
   actualizarPublicacion,
@@ -42,17 +50,67 @@ const normalizarPostParaApi = (post) => ({
   precio: Number(post.precio),
   imagen: post.imagen || "",
   ubicacion: post.ubicacion,
-  estado: post.estado,
+  estado: post.estado || "Activa",
   categoria_id: post.categoria_id || categoriasMap[post.categoria] || 1,
 });
 
+const esErrorDeToken = (message = "") => {
+  const cleanMessage = message.toLowerCase();
+
+  return (
+    cleanMessage.includes("token") ||
+    cleanMessage.includes("jwt") ||
+    cleanMessage.includes("expirado") ||
+    cleanMessage.includes("inválido") ||
+    cleanMessage.includes("invalido") ||
+    cleanMessage.includes("unauthorized") ||
+    cleanMessage.includes("no autorizado")
+  );
+};
+
 export const AppProvider = ({ children }) => {
+  const sessionExpiredToastShown = useRef(false);
+
   const [user, setUser] = useState(() => getStorageData("user", null));
   const [token, setToken] = useState(() => localStorage.getItem("token") || null);
   const [publicaciones, setPublicaciones] = useState([]);
   const [favoritos, setFavoritos] = useState([]);
   const [mensajes, setMensajes] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const limpiarSesion = () => {
+    setUser(null);
+    setToken(null);
+    setFavoritos([]);
+    setMensajes([]);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+  };
+
+  const manejarError = (error) => {
+    const message = error?.message || "Ocurrió un error inesperado.";
+
+    if (esErrorDeToken(message)) {
+      limpiarSesion();
+
+      if (!sessionExpiredToastShown.current) {
+        toast.error("Tu sesión expiró. Inicia sesión nuevamente.");
+        sessionExpiredToastShown.current = true;
+      }
+
+      return {
+        ok: false,
+        message: "Tu sesión expiró. Inicia sesión nuevamente.",
+        sessionExpired: true,
+      };
+    }
+
+    return {
+      ok: false,
+      message,
+      sessionExpired: false,
+    };
+  };
 
   const cargarPublicaciones = async () => {
     const data = await getPublicaciones();
@@ -66,13 +124,21 @@ export const AppProvider = ({ children }) => {
       return;
     }
 
-    const [favoritosData, mensajesData] = await Promise.all([
-      getFavoritos(authToken),
-      getMensajes(authToken),
-    ]);
+    try {
+      const [favoritosData, mensajesData] = await Promise.all([
+        getFavoritos(authToken),
+        getMensajes(authToken),
+      ]);
 
-    setFavoritos(Array.isArray(favoritosData) ? favoritosData : []);
-    setMensajes(Array.isArray(mensajesData) ? mensajesData : []);
+      setFavoritos(Array.isArray(favoritosData) ? favoritosData : []);
+      setMensajes(Array.isArray(mensajesData) ? mensajesData : []);
+    } catch (error) {
+      const result = manejarError(error);
+
+      if (!result.sessionExpired) {
+        console.error("Error al cargar datos privados:", error.message);
+      }
+    }
   };
 
   const cargarTodo = async () => {
@@ -101,16 +167,15 @@ export const AppProvider = ({ children }) => {
         message: "Usuario creado correctamente. Ahora puedes iniciar sesión.",
       };
     } catch (error) {
-      return {
-        ok: false,
-        message: error.message,
-      };
+      return manejarError(error);
     }
   };
 
   const login = async (email, password) => {
     try {
       const data = await loginUsuario({ email, password });
+
+      sessionExpiredToastShown.current = false;
 
       setUser(data.user);
       setToken(data.token);
@@ -125,20 +190,13 @@ export const AppProvider = ({ children }) => {
         message: "Inicio de sesión correcto.",
       };
     } catch (error) {
-      return {
-        ok: false,
-        message: error.message,
-      };
+      return manejarError(error);
     }
   };
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
-    setFavoritos([]);
-    setMensajes([]);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    sessionExpiredToastShown.current = false;
+    limpiarSesion();
   };
 
   const updateProfile = async (profileData) => {
@@ -153,6 +211,7 @@ export const AppProvider = ({ children }) => {
       const data = await actualizarPerfil(profileData, token);
       setUser(data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
+
       await cargarPublicaciones();
       await cargarDatosPrivados(token);
 
@@ -161,10 +220,7 @@ export const AppProvider = ({ children }) => {
         message: data.message || "Perfil actualizado correctamente.",
       };
     } catch (error) {
-      return {
-        ok: false,
-        message: error.message,
-      };
+      return manejarError(error);
     }
   };
 
@@ -185,10 +241,7 @@ export const AppProvider = ({ children }) => {
         message: data.message || "Publicación creada correctamente.",
       };
     } catch (error) {
-      return {
-        ok: false,
-        message: error.message,
-      };
+      return manejarError(error);
     }
   };
 
@@ -206,6 +259,7 @@ export const AppProvider = ({ children }) => {
         normalizarPostParaApi(postData),
         token
       );
+
       await cargarPublicaciones();
 
       return {
@@ -213,10 +267,7 @@ export const AppProvider = ({ children }) => {
         message: data.message || "Publicación actualizada correctamente.",
       };
     } catch (error) {
-      return {
-        ok: false,
-        message: error.message,
-      };
+      return manejarError(error);
     }
   };
 
@@ -230,6 +281,7 @@ export const AppProvider = ({ children }) => {
 
     try {
       const data = await eliminarPublicacion(postId, token);
+
       await cargarPublicaciones();
       await cargarDatosPrivados(token);
 
@@ -238,15 +290,21 @@ export const AppProvider = ({ children }) => {
         message: data.message || "Publicación eliminada correctamente.",
       };
     } catch (error) {
-      return {
-        ok: false,
-        message: error.message,
-      };
+      return manejarError(error);
     }
   };
 
   const favoriteIds = useMemo(() => {
-    return favoritos.map((item) => Number(item.publicacionId));
+    return favoritos
+      .map((item) =>
+        Number(
+          item.publicacionId ||
+            item.publicacion_id ||
+            item.publicacion ||
+            item.id_publicacion
+        )
+      )
+      .filter(Boolean);
   }, [favoritos]);
 
   const isFavorite = (postId) => favoriteIds.includes(Number(postId));
@@ -277,10 +335,7 @@ export const AppProvider = ({ children }) => {
             : "Publicación agregada a favoritos."),
       };
     } catch (error) {
-      return {
-        ok: false,
-        message: error.message,
-      };
+      return manejarError(error);
     }
   };
 
@@ -315,10 +370,7 @@ export const AppProvider = ({ children }) => {
         message: data.message || "Mensaje enviado correctamente.",
       };
     } catch (error) {
-      return {
-        ok: false,
-        message: error.message,
-      };
+      return manejarError(error);
     }
   };
 
@@ -339,6 +391,7 @@ export const AppProvider = ({ children }) => {
 
     try {
       const data = await responderMensaje(mensajeId, respuesta.trim(), token);
+
       await cargarDatosPrivados(token);
 
       return {
@@ -346,10 +399,7 @@ export const AppProvider = ({ children }) => {
         message: data.message || "Respuesta enviada correctamente.",
       };
     } catch (error) {
-      return {
-        ok: false,
-        message: error.message,
-      };
+      return manejarError(error);
     }
   };
 
