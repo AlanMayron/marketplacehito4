@@ -14,6 +14,7 @@ import {
   faAlignLeft,
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
+import toast from "react-hot-toast";
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ const CreatePost = () => {
     e.preventDefault();
 
     if (Number(form.precio) <= 0) {
-      alert("El precio debe ser mayor a 0.");
+      toast.error("El precio debe ser mayor a 0.");
       return;
     }
 
@@ -56,9 +57,10 @@ const CreatePost = () => {
     setIsSubmitting(false);
 
     if (result.ok) {
+      toast.success("Publicación creada correctamente.");
       navigate("/profile");
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 

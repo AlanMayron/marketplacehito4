@@ -23,6 +23,7 @@ import {
   faUserGear,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import toast from "react-hot-toast";
 
 const Profile = () => {
   const {
@@ -92,37 +93,47 @@ const Profile = () => {
   };
 
   const handleProfileSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (profileForm.nombre.trim() === "") {
-      setError("El nombre no puede estar vacío.");
-      return;
-    }
+  if (profileForm.nombre.trim() === "") {
+    const message = "El nombre no puede estar vacío.";
+    setError(message);
+    toast.error(message);
+    return;
+  }
 
-    if (profileForm.email.trim() === "") {
-      setError("El correo no puede estar vacío.");
-      return;
-    }
+  if (profileForm.email.trim() === "") {
+    const message = "El correo no puede estar vacío.";
+    setError(message);
+    toast.error(message);
+    return;
+  }
 
-    if (profileForm.telefono.trim() === "") {
-      setError("El teléfono no puede estar vacío.");
-      return;
-    }
+  if (profileForm.telefono.trim() === "") {
+    const message = "El teléfono no puede estar vacío.";
+    setError(message);
+    toast.error(message);
+    return;
+  }
 
-    const result = await updateProfile({
-      nombre: profileForm.nombre.trim(),
-      email: profileForm.email.trim(),
-      telefono: profileForm.telefono.trim(),
-    });
+  const result = await updateProfile({
+    nombre: profileForm.nombre.trim(),
+    email: profileForm.email.trim(),
+    telefono: profileForm.telefono.trim(),
+  });
 
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
+  if (!result.ok) {
+    setError(result.message);
+    setSuccess("");
+    toast.error(result.message);
+    return;
+  }
 
-    setSuccess(result.message);
-    setIsEditingProfile(false);
-  };
+  setSuccess(result.message);
+  setError("");
+  toast.success(result.message);
+  setIsEditingProfile(false);
+};
 
   const handleCancelProfile = () => {
     setIsEditingProfile(false);
@@ -164,73 +175,91 @@ const Profile = () => {
   };
 
   const handlePostSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (postForm.titulo.trim() === "") {
-      setError("El título no puede estar vacío.");
-      return;
-    }
+  if (postForm.titulo.trim() === "") {
+    const message = "El título no puede estar vacío.";
+    setError(message);
+    toast.error(message);
+    return;
+  }
 
-    if (Number(postForm.precio) <= 0) {
-      setError("El precio debe ser mayor a 0.");
-      return;
-    }
+  if (Number(postForm.precio) <= 0) {
+    const message = "El precio debe ser mayor a 0.";
+    setError(message);
+    toast.error(message);
+    return;
+  }
 
-    if (postForm.categoria === "") {
-      setError("Debes seleccionar una categoría.");
-      return;
-    }
+  if (postForm.categoria === "") {
+    const message = "Debes seleccionar una categoría.";
+    setError(message);
+    toast.error(message);
+    return;
+  }
 
-    if (postForm.ubicacion.trim() === "") {
-      setError("La ubicación no puede estar vacía.");
-      return;
-    }
+  if (postForm.ubicacion.trim() === "") {
+    const message = "La ubicación no puede estar vacía.";
+    setError(message);
+    toast.error(message);
+    return;
+  }
 
-    if (postForm.descripcion.trim() === "") {
-      setError("La descripción no puede estar vacía.");
-      return;
-    }
+  if (postForm.descripcion.trim() === "") {
+    const message = "La descripción no puede estar vacía.";
+    setError(message);
+    toast.error(message);
+    return;
+  }
 
-    const result = await updatePost(editingPostId, {
-      titulo: postForm.titulo.trim(),
-      precio: Number(postForm.precio),
-      categoria: postForm.categoria,
-      ubicacion: postForm.ubicacion.trim(),
-      descripcion: postForm.descripcion.trim(),
-      estado: postForm.estado,
-    });
+  const result = await updatePost(editingPostId, {
+    titulo: postForm.titulo.trim(),
+    precio: Number(postForm.precio),
+    categoria: postForm.categoria,
+    ubicacion: postForm.ubicacion.trim(),
+    descripcion: postForm.descripcion.trim(),
+    estado: postForm.estado,
+  });
 
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
+  if (!result.ok) {
+    setError(result.message);
+    setSuccess("");
+    toast.error(result.message);
+    return;
+  }
 
-    setSuccess(result.message);
-    setEditingPostId(null);
-  };
+  setSuccess(result.message);
+  setError("");
+  toast.success(result.message);
+  setEditingPostId(null);
+};
 
   const handleDeletePost = async (postId) => {
-    const confirmDelete = window.confirm(
-      "¿Seguro que quieres eliminar esta publicación?"
-    );
+  const confirmDelete = window.confirm(
+    "¿Seguro que quieres eliminar esta publicación?"
+  );
 
-    if (!confirmDelete) {
-      return;
-    }
+  if (!confirmDelete) {
+    return;
+  }
 
-    const result = await deletePost(postId);
+  const result = await deletePost(postId);
 
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
+  if (!result.ok) {
+    setError(result.message);
+    setSuccess("");
+    toast.error(result.message);
+    return;
+  }
 
-    setSuccess(result.message);
+  setSuccess(result.message);
+  setError("");
+  toast.success(result.message);
 
-    if (editingPostId === postId) {
-      setEditingPostId(null);
-    }
-  };
+  if (editingPostId === postId) {
+    setEditingPostId(null);
+  }
+};
 
   return (
     <section className="profile-page-modern">

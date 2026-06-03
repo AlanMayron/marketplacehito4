@@ -15,6 +15,7 @@ import {
   faStore,
   faCircleCheck,
 } from "@fortawesome/free-solid-svg-icons";
+import toast from "react-hot-toast";
 
 const PostDetail = () => {
   const { id } = useParams();
@@ -63,53 +64,58 @@ const PostDetail = () => {
   const precio = Number(product.precio || 0).toLocaleString("es-CL");
 
   const handleFavorite = async () => {
-    setError("");
-    setFeedback("");
+  setError("");
+  setFeedback("");
 
-    if (!isAuthenticated) {
-      setError("Debes iniciar sesión para guardar favoritos.");
-      return;
-    }
+  if (!isAuthenticated) {
+    toast.error("Debes iniciar sesión para guardar favoritos.");
+    return;
+  }
 
-    const result = await toggleFavorito(productId);
+  const result = await toggleFavorito(productId);
 
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
+  if (!result.ok) {
+    setError(result.message);
+    toast.error(result.message);
+    return;
+  }
 
-    setFeedback(result.message);
-  };
+  setFeedback(result.message);
+  toast.success(result.message);
+};
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (mensaje.trim().length < 5) {
-      setError("El mensaje debe tener al menos 5 caracteres.");
-      setFeedback("");
-      return;
-    }
-
-    setIsSending(true);
-    setError("");
+  if (mensaje.trim().length < 5) {
+    const message = "El mensaje debe tener al menos 5 caracteres.";
+    setError(message);
     setFeedback("");
+    toast.error(message);
+    return;
+  }
 
-    const result = await addMessage({
-      publicacionId: productId,
-      mensaje: mensaje.trim(),
-    });
+  setIsSending(true);
+  setError("");
+  setFeedback("");
 
-    setIsSending(false);
+  const result = await addMessage({
+    publicacionId: productId,
+    mensaje: mensaje.trim(),
+  });
 
-    if (!result.ok) {
-      setError(result.message);
-      return;
-    }
+  setIsSending(false);
 
-    setFeedback(result.message);
-    setMensaje("");
-  };
+  if (!result.ok) {
+    setError(result.message);
+    toast.error(result.message);
+    return;
+  }
 
+  setFeedback(result.message);
+  toast.success(result.message);
+  setMensaje("");
+};
   return (
     <section className="detail-page">
       <Link to="/posts" className="back-link">

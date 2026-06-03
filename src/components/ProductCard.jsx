@@ -9,6 +9,7 @@ import {
   faHeart,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
+import toast from "react-hot-toast";
 
 const ProductCard = ({ product }) => {
   const { isAuthenticated, isFavorite, toggleFavorito } = useAppContext();
@@ -18,14 +19,14 @@ const ProductCard = ({ product }) => {
 
   const handleFavorite = async () => {
     if (!isAuthenticated) {
-      alert("Debes iniciar sesión para guardar favoritos.");
+      toast.error("Debes iniciar sesión para guardar favoritos.");
       return;
     }
 
     const result = await toggleFavorito(postId);
 
     if (!result.ok) {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 

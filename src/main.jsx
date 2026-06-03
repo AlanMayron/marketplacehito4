@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./index.css";
 import App from "./App";
@@ -11,6 +12,29 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <AppProvider>
         <App />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3500,
+            style: {
+              borderRadius: "16px",
+              fontWeight: "700",
+              padding: "14px 16px",
+            },
+            success: {
+              iconTheme: {
+                primary: "#16a34a",
+                secondary: "#ffffff",
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: "#dc2626",
+                secondary: "#ffffff",
+              },
+            },
+          }}
+        />
       </AppProvider>
     </BrowserRouter>
   </React.StrictMode>
