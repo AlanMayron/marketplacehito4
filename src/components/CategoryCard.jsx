@@ -6,6 +6,8 @@ import {
   faCouch,
   faDumbbell,
   faBook,
+  faPalette,
+  faShapes,
   faTag,
 } from "@fortawesome/free-solid-svg-icons";
 
@@ -15,6 +17,8 @@ const categoryIcons = {
   Hogar: faCouch,
   Deportes: faDumbbell,
   Libros: faBook,
+  Manualidades: faPalette,
+  Otro: faShapes,
 };
 
 const CategoryCard = ({ name }) => {

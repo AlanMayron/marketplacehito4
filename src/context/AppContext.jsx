@@ -33,6 +33,8 @@ const categoriasMap = {
   Hogar: 3,
   Deportes: 4,
   Libros: 5,
+  Manualidades: 6,
+  Otro: 7,
 };
 
 const getStorageData = (key, fallback) => {
@@ -272,30 +274,48 @@ export const AppProvider = ({ children }) => {
 };
 
   const updatePost = async (postId, postData) => {
-    if (!user || !token) {
-      return {
-        ok: false,
-        message: "Debes iniciar sesión.",
-      };
+  if (!user || !token) {
+    return {
+      ok: false,
+      message: "Debes iniciar sesión.",
+    };
+  }
+
+  try {
+    const formData = new FormData();
+
+    formData.append("titulo", postData.titulo);
+    formData.append("descripcion", postData.descripcion);
+    formData.append("precio", Number(postData.precio));
+    formData.append("ubicacion", postData.ubicacion);
+    formData.append(
+      "categoria_id",
+      postData.categoria_id || categoriasMap[postData.categoria] || 1
+    );
+    formData.append("estado", postData.estado || "Activa");
+
+    if (postData.eliminarImagenes) {
+      formData.append("eliminar_imagenes", "true");
     }
 
-    try {
-      const data = await actualizarPublicacion(
-        postId,
-        normalizarPostParaApi(postData),
-        token
-      );
-
-      await cargarPublicaciones();
-
-      return {
-        ok: true,
-        message: data.message || "Publicación actualizada correctamente.",
-      };
-    } catch (error) {
-      return manejarError(error);
+    if (postData.imagenes && postData.imagenes.length > 0) {
+      postData.imagenes.forEach((file) => {
+        formData.append("imagenes", file);
+      });
     }
-  };
+
+    const data = await actualizarPublicacion(postId, formData, token);
+
+    await cargarPublicaciones();
+
+    return {
+      ok: true,
+      message: data.message || "Publicación actualizada correctamente.",
+    };
+  } catch (error) {
+    return manejarError(error);
+  }
+};
 
   const deletePost = async (postId) => {
     if (!user || !token) {

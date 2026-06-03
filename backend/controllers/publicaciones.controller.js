@@ -261,9 +261,16 @@ const actualizarPublicacion = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { titulo, descripcion, precio, imagen, ubicacion, categoria_id, estado } =
-      req.body;
-
+    const {
+  titulo,
+  descripcion,
+  precio,
+  imagen,
+  ubicacion,
+  categoria_id,
+  estado,
+  eliminar_imagenes,
+} = req.body;
     const archivos = req.files || [];
 
     if (archivos.length > 3) {
@@ -320,45 +327,56 @@ const actualizarPublicacion = async (req, res) => {
       });
     }
 
-    if (archivos.length > 0) {
-      const oldImages = await client.query(
-        `SELECT public_id
-         FROM publicacion_imagenes
-         WHERE publicacion_id = $1`,
-        [id]
-      );
+    const debeEliminarImagenes = eliminar_imagenes === "true" || archivos.length > 0;
 
+if (debeEliminarImagenes) {
+  const oldImages = await client.query(
+    `SELECT public_id
+     FROM publicacion_imagenes
+     WHERE publicacion_id = $1`,
+    [id]
+  );
+
+  await client.query(
+    `DELETE FROM publicacion_imagenes
+     WHERE publicacion_id = $1`,
+    [id]
+  );
+
+  await client.query(
+    `UPDATE publicaciones
+     SET imagen = ''
+     WHERE id = $1`,
+    [id]
+  );
+
+  await eliminarImagenesCloudinary(oldImages.rows.map((row) => row.public_id));
+}
+
+if (archivos.length > 0) {
+  for (let i = 0; i < archivos.length; i += 1) {
+    const uploadResult = await subirBufferACloudinary(archivos[i]);
+    imagenesSubidas.push(uploadResult.public_id);
+
+    await client.query(
+      `INSERT INTO publicacion_imagenes
+        (publicacion_id, imagen_url, public_id, orden)
+       VALUES ($1, $2, $3, $4)`,
+      [id, uploadResult.secure_url, uploadResult.public_id, i + 1]
+    );
+
+    if (i === 0) {
       await client.query(
-        `DELETE FROM publicacion_imagenes
-         WHERE publicacion_id = $1`,
-        [id]
+        `UPDATE publicaciones
+         SET imagen = $1
+         WHERE id = $2`,
+        [uploadResult.secure_url, id]
       );
-
-      for (let i = 0; i < archivos.length; i += 1) {
-        const uploadResult = await subirBufferACloudinary(archivos[i]);
-        imagenesSubidas.push(uploadResult.public_id);
-
-        await client.query(
-          `INSERT INTO publicacion_imagenes
-            (publicacion_id, imagen_url, public_id, orden)
-           VALUES ($1, $2, $3, $4)`,
-          [id, uploadResult.secure_url, uploadResult.public_id, i + 1]
-        );
-
-        if (i === 0) {
-          await client.query(
-            `UPDATE publicaciones
-             SET imagen = $1
-             WHERE id = $2`,
-            [uploadResult.secure_url, id]
-          );
-        }
-      }
-
-      await eliminarImagenesCloudinary(oldImages.rows.map((row) => row.public_id));
     }
+  }
+}
 
-    await client.query("COMMIT");
+await client.query("COMMIT");
 
     const publicacion = await obtenerPublicacionPorId(id);
 

@@ -239,11 +239,7 @@ const PostDetail = () => {
               <FontAwesomeIcon icon={faEnvelope} />
               Iniciar sesión para contactar
             </Link>
-          ) : isOwnPost ? (
-            <div className="empty-state own-post-message">
-              Esta publicación es tuya, por eso no puedes enviarte un mensaje.
-            </div>
-          ) : (
+          ) : isOwnPost ? null : (
             <form className="contact-form contact-form-modern" onSubmit={handleSendMessage}>
               <label>
                 <FontAwesomeIcon icon={faEnvelope} />

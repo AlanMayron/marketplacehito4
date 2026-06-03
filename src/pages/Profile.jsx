@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { categoriasMock } from "../data/mockData";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -19,6 +19,7 @@ import {
   faPlus,
   faTag,
   faTrash,
+  faUpload,
   faUser,
   faUserGear,
   faXmark,
@@ -38,6 +39,8 @@ const Profile = () => {
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
+  const [editImages, setEditImages] = useState([]);
+  const [removeCurrentImages, setRemoveCurrentImages] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -48,14 +51,13 @@ const Profile = () => {
   });
 
   const [postForm, setPostForm] = useState({
-  titulo: "",
-  precio: "",
-  categoria: "",
-  ubicacion: "",
-  descripcion: "",
-  estado: "Activa",
-  imagen: "",
-});
+    titulo: "",
+    precio: "",
+    categoria: "",
+    ubicacion: "",
+    descripcion: "",
+    estado: "Activa",
+  });
 
   useEffect(() => {
     if (user) {
@@ -83,6 +85,44 @@ const Profile = () => {
     return Number(vendedorId) === Number(userId);
   });
 
+  const editingPost = publicaciones.find((post) => {
+    const postId = post.id || post.publicacion_id;
+    return Number(postId) === Number(editingPostId);
+  });
+
+  const currentImages = useMemo(() => {
+    if (!editingPost) {
+      return [];
+    }
+
+    if (Array.isArray(editingPost.imagenes) && editingPost.imagenes.length > 0) {
+      return editingPost.imagenes.map((img, index) => ({
+        id: img.id || index,
+        url: img.url || img.imagen_url || img.imagenUrl || "",
+        orden: img.orden || index + 1,
+      }));
+    }
+
+    if (editingPost.imagen) {
+      return [
+        {
+          id: "principal",
+          url: editingPost.imagen,
+          orden: 1,
+        },
+      ];
+    }
+
+    return [];
+  }, [editingPost]);
+
+  const editImagePreviews = useMemo(() => {
+    return editImages.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+  }, [editImages]);
+
   const handleProfileChange = (e) => {
     setProfileForm({
       ...profileForm,
@@ -94,47 +134,47 @@ const Profile = () => {
   };
 
   const handleProfileSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (profileForm.nombre.trim() === "") {
-    const message = "El nombre no puede estar vacío.";
-    setError(message);
-    toast.error(message);
-    return;
-  }
+    if (profileForm.nombre.trim() === "") {
+      const message = "El nombre no puede estar vacío.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
 
-  if (profileForm.email.trim() === "") {
-    const message = "El correo no puede estar vacío.";
-    setError(message);
-    toast.error(message);
-    return;
-  }
+    if (profileForm.email.trim() === "") {
+      const message = "El correo no puede estar vacío.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
 
-  if (profileForm.telefono.trim() === "") {
-    const message = "El teléfono no puede estar vacío.";
-    setError(message);
-    toast.error(message);
-    return;
-  }
+    if (profileForm.telefono.trim() === "") {
+      const message = "El teléfono no puede estar vacío.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
 
-  const result = await updateProfile({
-    nombre: profileForm.nombre.trim(),
-    email: profileForm.email.trim(),
-    telefono: profileForm.telefono.trim(),
-  });
+    const result = await updateProfile({
+      nombre: profileForm.nombre.trim(),
+      email: profileForm.email.trim(),
+      telefono: profileForm.telefono.trim(),
+    });
 
-  if (!result.ok) {
-    setError(result.message);
-    setSuccess("");
-    toast.error(result.message);
-    return;
-  }
+    if (!result.ok) {
+      setError(result.message);
+      setSuccess("");
+      toast.error(result.message);
+      return;
+    }
 
-  setSuccess(result.message);
-  setError("");
-  toast.success(result.message);
-  setIsEditingProfile(false);
-};
+    setSuccess(result.message);
+    setError("");
+    toast.success(result.message);
+    setIsEditingProfile(false);
+  };
 
   const handleCancelProfile = () => {
     setIsEditingProfile(false);
@@ -154,17 +194,26 @@ const Profile = () => {
     setEditingPostId(postId);
     setError("");
     setSuccess("");
+    setEditImages([]);
+    setRemoveCurrentImages(false);
 
     setPostForm({
-  titulo: post.titulo || "",
-  precio: post.precio || "",
-  categoria: post.categoria || "",
-  ubicacion: post.ubicacion || "",
-  descripcion: post.descripcion || "",
-  estado: post.estado || "Activa",
-  imagen: post.imagen || "",
-});
- };
+      titulo: post.titulo || "",
+      precio: post.precio || "",
+      categoria: post.categoria || "",
+      ubicacion: post.ubicacion || "",
+      descripcion: post.descripcion || "",
+      estado: post.estado || "Activa",
+    });
+  };
+
+  const cancelEditPost = () => {
+    setEditingPostId(null);
+    setEditImages([]);
+    setRemoveCurrentImages(false);
+    setError("");
+    setSuccess("");
+  };
 
   const handlePostChange = (e) => {
     setPostForm({
@@ -176,93 +225,153 @@ const Profile = () => {
     setSuccess("");
   };
 
+  const handleEditImagesChange = (e) => {
+    const selectedFiles = Array.from(e.target.files || []);
+
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    const validFiles = selectedFiles.filter((file) =>
+      ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type)
+    );
+
+    if (validFiles.length !== selectedFiles.length) {
+      toast.error("Solo puedes subir imágenes JPG, PNG o WEBP.");
+      e.target.value = "";
+      return;
+    }
+
+    const combinedFiles = [...editImages, ...validFiles];
+
+    if (combinedFiles.length > 3) {
+      toast.error("Puedes subir máximo 3 imágenes por publicación.");
+      e.target.value = "";
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    const hasLargeFile = combinedFiles.some((file) => file.size > maxSize);
+
+    if (hasLargeFile) {
+      toast.error("Cada imagen debe pesar máximo 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setEditImages(combinedFiles);
+    setRemoveCurrentImages(true);
+    e.target.value = "";
+  };
+
+  const removeEditImage = (indexToRemove) => {
+    setEditImages((currentImagesState) =>
+      currentImagesState.filter((_, index) => index !== indexToRemove)
+    );
+  };
+
+  const removeAllCurrentImages = () => {
+    setRemoveCurrentImages(true);
+    setEditImages([]);
+  };
+
+  const restoreCurrentImages = () => {
+    setRemoveCurrentImages(false);
+    setEditImages([]);
+  };
+
   const handlePostSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (postForm.titulo.trim() === "") {
-    const message = "El título no puede estar vacío.";
-    setError(message);
-    toast.error(message);
-    return;
-  }
+    if (postForm.titulo.trim() === "") {
+      const message = "El título no puede estar vacío.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
 
-  if (Number(postForm.precio) <= 0) {
-    const message = "El precio debe ser mayor a 0.";
-    setError(message);
-    toast.error(message);
-    return;
-  }
+    if (Number(postForm.precio) <= 0) {
+      const message = "El precio debe ser mayor a 0.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
 
-  if (postForm.categoria === "") {
-    const message = "Debes seleccionar una categoría.";
-    setError(message);
-    toast.error(message);
-    return;
-  }
+    if (postForm.categoria === "") {
+      const message = "Debes seleccionar una categoría.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
 
-  if (postForm.ubicacion.trim() === "") {
-    const message = "La ubicación no puede estar vacía.";
-    setError(message);
-    toast.error(message);
-    return;
-  }
+    if (postForm.ubicacion.trim() === "") {
+      const message = "La ubicación no puede estar vacía.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
 
-  if (postForm.descripcion.trim() === "") {
-    const message = "La descripción no puede estar vacía.";
-    setError(message);
-    toast.error(message);
-    return;
-  }
+    if (postForm.descripcion.trim() === "") {
+      const message = "La descripción no puede estar vacía.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
 
-  const result = await updatePost(editingPostId, {
-  titulo: postForm.titulo.trim(),
-  precio: Number(postForm.precio),
-  categoria: postForm.categoria,
-  ubicacion: postForm.ubicacion.trim(),
-  descripcion: postForm.descripcion.trim(),
-  estado: postForm.estado,
-  imagen: postForm.imagen.trim(),
-});
+    const result = await updatePost(editingPostId, {
+      titulo: postForm.titulo.trim(),
+      precio: Number(postForm.precio),
+      categoria: postForm.categoria,
+      ubicacion: postForm.ubicacion.trim(),
+      descripcion: postForm.descripcion.trim(),
+      estado: postForm.estado,
+      imagenes: editImages,
+      eliminarImagenes: removeCurrentImages,
+    });
 
-  if (!result.ok) {
-    setError(result.message);
-    setSuccess("");
-    toast.error(result.message);
-    return;
-  }
+    if (!result.ok) {
+      setError(result.message);
+      setSuccess("");
+      toast.error(result.message);
+      return;
+    }
 
-  setSuccess(result.message);
-  setError("");
-  toast.success(result.message);
-  setEditingPostId(null);
-};
+    setSuccess(result.message);
+    setError("");
+    toast.success(result.message);
+    setEditImages([]);
+    setRemoveCurrentImages(false);
+    setEditingPostId(null);
+  };
 
   const handleDeletePost = async (postId) => {
-  const confirmDelete = window.confirm(
-    "¿Seguro que quieres eliminar esta publicación?"
-  );
+    const confirmDelete = window.confirm(
+      "¿Seguro que quieres eliminar esta publicación?"
+    );
 
-  if (!confirmDelete) {
-    return;
-  }
+    if (!confirmDelete) {
+      return;
+    }
 
-  const result = await deletePost(postId);
+    const result = await deletePost(postId);
 
-  if (!result.ok) {
-    setError(result.message);
-    setSuccess("");
-    toast.error(result.message);
-    return;
-  }
+    if (!result.ok) {
+      setError(result.message);
+      setSuccess("");
+      toast.error(result.message);
+      return;
+    }
 
-  setSuccess(result.message);
-  setError("");
-  toast.success(result.message);
+    setSuccess(result.message);
+    setError("");
+    toast.success(result.message);
 
-  if (editingPostId === postId) {
-    setEditingPostId(null);
-  }
-};
+    if (Number(editingPostId) === Number(postId)) {
+      setEditingPostId(null);
+      setEditImages([]);
+      setRemoveCurrentImages(false);
+    }
+  };
 
   return (
     <section className="profile-page-modern">
@@ -271,7 +380,11 @@ const Profile = () => {
           <div className="profile-cover"></div>
 
           <div className="profile-avatar-modern">
-            <FontAwesomeIcon icon={faUser} />
+            {user?.avatar_url || user?.avatarUrl ? (
+              <img src={user.avatar_url || user.avatarUrl} alt={user.nombre} />
+            ) : (
+              <FontAwesomeIcon icon={faUser} />
+            )}
           </div>
 
           {!isEditingProfile ? (
@@ -298,7 +411,10 @@ const Profile = () => {
               </button>
             </>
           ) : (
-            <form className="profile-edit-form-modern" onSubmit={handleProfileSubmit}>
+            <form
+              className="profile-edit-form-modern"
+              onSubmit={handleProfileSubmit}
+            >
               <div className="form-group">
                 <label>
                   <FontAwesomeIcon icon={faUser} />
@@ -423,17 +539,19 @@ const Profile = () => {
                 <article className="profile-post-card" key={postId}>
                   <div className="profile-post-image">
                     {post.imagen ? (
-  <img
-    src={post.imagen}
-    alt={post.titulo}
-    onError={(e) => {
-      e.currentTarget.style.display = "none";
-      e.currentTarget.parentElement.classList.add("image-load-error");
-    }}
-  />
-) : (
-  <FontAwesomeIcon icon={faImage} />
-)}
+                      <img
+                        src={post.imagen}
+                        alt={post.titulo}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          e.currentTarget.parentElement.classList.add(
+                            "image-load-error"
+                          );
+                        }}
+                      />
+                    ) : (
+                      <FontAwesomeIcon icon={faImage} />
+                    )}
                   </div>
 
                   <div className="profile-post-info">
@@ -499,7 +617,7 @@ const Profile = () => {
           </div>
         )}
 
-               {editingPostId && (
+        {editingPostId && (
           <form
             className="edit-post-panel edit-post-panel-modern"
             onSubmit={handlePostSubmit}
@@ -510,11 +628,7 @@ const Profile = () => {
                 <p>Actualiza los datos principales de tu producto.</p>
               </div>
 
-              <button
-                className="btn-light"
-                type="button"
-                onClick={() => setEditingPostId(null)}
-              >
+              <button className="btn-light" type="button" onClick={cancelEditPost}>
                 <FontAwesomeIcon icon={faXmark} />
                 Cerrar
               </button>
@@ -587,46 +701,98 @@ const Profile = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Imagen</label>
+                  <label>Imágenes</label>
 
-                  <div className="edit-image-url-row">
-                    <input
-                      type="url"
-                      name="imagen"
-                      value={postForm.imagen}
-                      onChange={handlePostChange}
-                      placeholder="https://ejemplo.com/imagen.jpg"
-                    />
+                  <div className="edit-current-images">
+                    {!removeCurrentImages && (
+                      <>
+                        <p>Imágenes actuales</p>
 
-                    {postForm.imagen && (
+                        {currentImages.length > 0 ? (
+                          <div className="selected-images-grid">
+                            {currentImages.map((img, index) => (
+                              <div
+                                className="selected-image-item"
+                                key={img.id || img.url}
+                              >
+                                <img src={img.url} alt={`Imagen ${index + 1}`} />
+                                <span>{index + 1}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="edit-image-preview">
+                            <span>Sin imágenes actuales</span>
+                          </div>
+                        )}
+
+                        {currentImages.length > 0 && (
+                          <button
+                            type="button"
+                            className="btn-light full-button"
+                            onClick={removeAllCurrentImages}
+                          >
+                            Quitar imágenes actuales
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {removeCurrentImages && editImages.length === 0 && (
+                      <div className="edit-image-preview">
+                        <span>
+                          Las imágenes actuales serán eliminadas al guardar.
+                        </span>
+                      </div>
+                    )}
+
+                    {removeCurrentImages && currentImages.length > 0 && (
                       <button
                         type="button"
-                        className="btn-light"
-                        onClick={() =>
-                          setPostForm({
-                            ...postForm,
-                            imagen: "",
-                          })
-                        }
+                        className="btn-light full-button"
+                        onClick={restoreCurrentImages}
                       >
-                        Quitar
+                        Restaurar imágenes actuales
                       </button>
                     )}
                   </div>
 
-                  <div className="edit-image-preview">
-                    {postForm.imagen ? (
-                      <img
-                        src={postForm.imagen}
-                        alt="Vista previa"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <span>Sin imagen</span>
-                    )}
-                  </div>
+                  <label className="upload-real-box edit-upload-box">
+                    <FontAwesomeIcon icon={faUpload} />
+                    <strong>Seleccionar nuevas imágenes</strong>
+                    <span>
+                      Si subes nuevas imágenes, reemplazarán las actuales.
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
+                      multiple
+                      onChange={handleEditImagesChange}
+                    />
+                  </label>
+
+                  {editImagePreviews.length > 0 && (
+                    <div className="selected-images-grid">
+                      {editImagePreviews.map((preview, index) => (
+                        <div className="selected-image-item" key={preview.url}>
+                          <img
+                            src={preview.url}
+                            alt={`Nueva imagen ${index + 1}`}
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => removeEditImage(index)}
+                            title="Quitar imagen"
+                          >
+                            <FontAwesomeIcon icon={faXmark} />
+                          </button>
+
+                          <span>{index + 1}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">

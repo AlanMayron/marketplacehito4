@@ -36,6 +36,8 @@ export const categoriasMock = [
   "Hogar",
   "Deportes",
   "Libros",
+  "Manualidades",
+  "Otro",
 ];
 
 export const publicacionesMock = [
