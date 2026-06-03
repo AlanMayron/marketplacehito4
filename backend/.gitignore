@@ -1,3 +1,4 @@
-node_modules
 .env
-coverage
+backend/.env
+node_modules
+dist

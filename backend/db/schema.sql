@@ -57,3 +57,12 @@ INSERT INTO categorias (nombre) VALUES
   ('Deportes'),
   ('Libros')
 ON CONFLICT (nombre) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS publicacion_imagenes (
+  id SERIAL PRIMARY KEY,
+  publicacion_id INTEGER NOT NULL REFERENCES publicaciones(id) ON DELETE CASCADE,
+  imagen_url TEXT NOT NULL,
+  public_id TEXT,
+  orden INTEGER DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
