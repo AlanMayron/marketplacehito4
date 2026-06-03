@@ -48,13 +48,14 @@ const Profile = () => {
   });
 
   const [postForm, setPostForm] = useState({
-    titulo: "",
-    precio: "",
-    categoria: "",
-    ubicacion: "",
-    descripcion: "",
-    estado: "Activa",
-  });
+  titulo: "",
+  precio: "",
+  categoria: "",
+  ubicacion: "",
+  descripcion: "",
+  estado: "Activa",
+  imagen: "",
+});
 
   useEffect(() => {
     if (user) {
@@ -155,14 +156,15 @@ const Profile = () => {
     setSuccess("");
 
     setPostForm({
-      titulo: post.titulo || "",
-      precio: post.precio || "",
-      categoria: post.categoria || "",
-      ubicacion: post.ubicacion || "",
-      descripcion: post.descripcion || "",
-      estado: post.estado || "Activa",
-    });
-  };
+  titulo: post.titulo || "",
+  precio: post.precio || "",
+  categoria: post.categoria || "",
+  ubicacion: post.ubicacion || "",
+  descripcion: post.descripcion || "",
+  estado: post.estado || "Activa",
+  imagen: post.imagen || "",
+});
+ };
 
   const handlePostChange = (e) => {
     setPostForm({
@@ -213,13 +215,14 @@ const Profile = () => {
   }
 
   const result = await updatePost(editingPostId, {
-    titulo: postForm.titulo.trim(),
-    precio: Number(postForm.precio),
-    categoria: postForm.categoria,
-    ubicacion: postForm.ubicacion.trim(),
-    descripcion: postForm.descripcion.trim(),
-    estado: postForm.estado,
-  });
+  titulo: postForm.titulo.trim(),
+  precio: Number(postForm.precio),
+  categoria: postForm.categoria,
+  ubicacion: postForm.ubicacion.trim(),
+  descripcion: postForm.descripcion.trim(),
+  estado: postForm.estado,
+  imagen: postForm.imagen.trim(),
+});
 
   if (!result.ok) {
     setError(result.message);
@@ -420,10 +423,17 @@ const Profile = () => {
                 <article className="profile-post-card" key={postId}>
                   <div className="profile-post-image">
                     {post.imagen ? (
-                      <img src={post.imagen} alt={post.titulo} />
-                    ) : (
-                      <FontAwesomeIcon icon={faImage} />
-                    )}
+  <img
+    src={post.imagen}
+    alt={post.titulo}
+    onError={(e) => {
+      e.currentTarget.style.display = "none";
+      e.currentTarget.parentElement.classList.add("image-load-error");
+    }}
+  />
+) : (
+  <FontAwesomeIcon icon={faImage} />
+)}
                   </div>
 
                   <div className="profile-post-info">
@@ -489,8 +499,11 @@ const Profile = () => {
           </div>
         )}
 
-        {editingPostId && (
-          <form className="edit-post-panel edit-post-panel-modern" onSubmit={handlePostSubmit}>
+               {editingPostId && (
+          <form
+            className="edit-post-panel edit-post-panel-modern"
+            onSubmit={handlePostSubmit}
+          >
             <div className="edit-post-header">
               <div>
                 <h2>Editar publicación</h2>
@@ -547,9 +560,7 @@ const Profile = () => {
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <div>
                 <div className="form-group">
                   <label>Ubicación</label>
                   <input
@@ -560,7 +571,9 @@ const Profile = () => {
                     required
                   />
                 </div>
+              </div>
 
+              <div>
                 <div className="form-group">
                   <label>Estado</label>
                   <select
@@ -571,6 +584,49 @@ const Profile = () => {
                     <option value="Activa">Activa</option>
                     <option value="Pausada">Pausada</option>
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Imagen</label>
+
+                  <div className="edit-image-url-row">
+                    <input
+                      type="url"
+                      name="imagen"
+                      value={postForm.imagen}
+                      onChange={handlePostChange}
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                    />
+
+                    {postForm.imagen && (
+                      <button
+                        type="button"
+                        className="btn-light"
+                        onClick={() =>
+                          setPostForm({
+                            ...postForm,
+                            imagen: "",
+                          })
+                        }
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="edit-image-preview">
+                    {postForm.imagen ? (
+                      <img
+                        src={postForm.imagen}
+                        alt="Vista previa"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <span>Sin imagen</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="form-group">
