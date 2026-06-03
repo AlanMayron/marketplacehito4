@@ -50,12 +50,26 @@ export const actualizarPerfil = (perfil, token) =>
     body: JSON.stringify(perfil),
   });
 
-export const crearPublicacion = (publicacion, token) =>
-  request("/publicaciones", {
+export const crearPublicacion = async (publicacion, token) => {
+  const isFormData = publicacion instanceof FormData;
+
+  const response = await fetch(`${API_URL}/publicaciones`, {
     method: "POST",
-    headers: authHeaders(token),
-    body: JSON.stringify(publicacion),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    },
+    body: isFormData ? publicacion : JSON.stringify(publicacion),
   });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "Error al crear publicación");
+  }
+
+  return data;
+};
 
 export const actualizarPublicacion = (id, publicacion, token) =>
   request(`/publicaciones/${id}`, {

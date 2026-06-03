@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { categoriasMock } from "../data/mockData";
@@ -15,9 +15,9 @@ import {
   faAlignLeft,
   faSpinner,
   faImage,
-  faLink,
   faCircleInfo,
   faXmark,
+  faUpload,
 } from "@fortawesome/free-solid-svg-icons";
 
 const CreatePost = () => {
@@ -25,7 +25,7 @@ const CreatePost = () => {
   const { addPost } = useAppContext();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imagePreviewError, setImagePreviewError] = useState(false);
+  const [imagenes, setImagenes] = useState([]);
 
   const [form, setForm] = useState({
     titulo: "",
@@ -33,27 +33,66 @@ const CreatePost = () => {
     categoria: "",
     ubicacion: "",
     descripcion: "",
-    imagen: "",
   });
+
+  const previews = useMemo(() => {
+    return imagenes.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+  }, [imagenes]);
 
   const handleChange = (e) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value,
     });
-
-    if (e.target.name === "imagen") {
-      setImagePreviewError(false);
-    }
   };
 
-  const clearImage = () => {
-    setForm({
-      ...form,
-      imagen: "",
-    });
+  const handleImagesChange = (e) => {
+    const selectedFiles = Array.from(e.target.files || []);
 
-    setImagePreviewError(false);
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    const validFiles = selectedFiles.filter((file) =>
+      ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(
+        file.type
+      )
+    );
+
+    if (validFiles.length !== selectedFiles.length) {
+      toast.error("Solo puedes subir imágenes JPG, PNG o WEBP.");
+      e.target.value = "";
+      return;
+    }
+
+    const combinedFiles = [...imagenes, ...validFiles];
+
+    if (combinedFiles.length > 3) {
+      toast.error("Puedes subir máximo 3 imágenes por publicación.");
+      e.target.value = "";
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    const hasLargeFile = combinedFiles.some((file) => file.size > maxSize);
+
+    if (hasLargeFile) {
+      toast.error("Cada imagen debe pesar máximo 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setImagenes(combinedFiles);
+    e.target.value = "";
+  };
+
+  const removeImage = (indexToRemove) => {
+    setImagenes((currentImages) =>
+      currentImages.filter((_, index) => index !== indexToRemove)
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -84,6 +123,11 @@ const CreatePost = () => {
       return;
     }
 
+    if (imagenes.length === 0) {
+      toast.error("Debes subir al menos una imagen del producto.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const result = await addPost({
@@ -92,7 +136,7 @@ const CreatePost = () => {
       precio: Number(form.precio),
       ubicacion: form.ubicacion.trim(),
       descripcion: form.descripcion.trim(),
-      imagen: form.imagen.trim(),
+      imagenes,
     });
 
     setIsSubmitting(false);
@@ -105,7 +149,7 @@ const CreatePost = () => {
     }
   };
 
-  const hasImageUrl = form.imagen.trim() !== "";
+  const mainPreview = previews[0];
 
   return (
     <section className="panel create-post-panel create-post-panel-modern">
@@ -123,7 +167,9 @@ const CreatePost = () => {
 
         <div className="create-post-helper">
           <FontAwesomeIcon icon={faCircleInfo} />
-          <span>Mientras agregamos Cloudinary, puedes usar una URL de imagen.</span>
+          <span>
+            Ahora puedes subir imágenes reales. Máximo 3 fotos por publicación.
+          </span>
         </div>
       </div>
 
@@ -218,54 +264,57 @@ const CreatePost = () => {
           <div className="form-group">
             <label className="label-with-icon">
               <FontAwesomeIcon icon={faCamera} />
-              Imagen del producto
+              Imágenes del producto
             </label>
 
-            <div className="image-url-box">
-              <FontAwesomeIcon icon={faLink} />
+            <label className="upload-real-box">
+              <FontAwesomeIcon icon={faUpload} />
+              <strong>Seleccionar imágenes</strong>
+              <span>JPG, PNG o WEBP. Máximo 3 imágenes de 5 MB.</span>
               <input
-                type="url"
-                name="imagen"
-                placeholder="https://ejemplo.com/imagen.jpg"
-                value={form.imagen}
-                onChange={handleChange}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/jpg"
+                multiple
+                onChange={handleImagesChange}
               />
-
-              {hasImageUrl && (
-                <button
-                  type="button"
-                  className="clear-image-button"
-                  onClick={clearImage}
-                  title="Quitar imagen"
-                >
-                  <FontAwesomeIcon icon={faXmark} />
-                </button>
-              )}
-            </div>
+            </label>
           </div>
 
           <div className="create-preview-card">
             <div className="create-preview-image">
-              {hasImageUrl && !imagePreviewError ? (
-                <img
-                  src={form.imagen}
-                  alt="Vista previa"
-                  onError={() => setImagePreviewError(true)}
-                />
+              {mainPreview ? (
+                <img src={mainPreview.url} alt="Vista previa principal" />
               ) : (
                 <div className="create-preview-placeholder">
                   <FontAwesomeIcon icon={faImage} />
-                  <span>
-                    {hasImageUrl
-                      ? "No se pudo cargar la imagen"
-                      : "Vista previa de imagen"}
-                  </span>
+                  <span>Vista previa de imagen</span>
                   <small>
-                    Pega una URL válida para ver cómo quedará tu publicación.
+                    Selecciona imágenes desde tu computador para ver cómo
+                    quedará la publicación.
                   </small>
                 </div>
               )}
             </div>
+
+            {previews.length > 0 && (
+              <div className="selected-images-grid">
+                {previews.map((preview, index) => (
+                  <div className="selected-image-item" key={preview.url}>
+                    <img src={preview.url} alt={`Imagen ${index + 1}`} />
+
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      title="Quitar imagen"
+                    >
+                      <FontAwesomeIcon icon={faXmark} />
+                    </button>
+
+                    <span>{index + 1}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="create-preview-info">
               <span className="product-category-pill">

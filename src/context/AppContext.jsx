@@ -225,25 +225,51 @@ export const AppProvider = ({ children }) => {
   };
 
   const addPost = async (newPost) => {
-    if (!user || !token) {
-      return {
-        ok: false,
-        message: "Debes iniciar sesión para crear una publicación.",
-      };
+  if (!user || !token) {
+    return {
+      ok: false,
+      message: "Debes iniciar sesión para crear una publicación.",
+    };
+  }
+
+  try {
+    const formData = new FormData();
+
+    formData.append("titulo", newPost.titulo);
+    formData.append("descripcion", newPost.descripcion);
+    formData.append("precio", Number(newPost.precio));
+    formData.append("ubicacion", newPost.ubicacion);
+    formData.append(
+      "categoria_id",
+      newPost.categoria_id || categoriasMap[newPost.categoria] || 1
+    );
+
+    if (newPost.estado) {
+      formData.append("estado", newPost.estado);
     }
 
-    try {
-      const data = await crearPublicacion(normalizarPostParaApi(newPost), token);
-      await cargarPublicaciones();
-
-      return {
-        ok: true,
-        message: data.message || "Publicación creada correctamente.",
-      };
-    } catch (error) {
-      return manejarError(error);
+    if (newPost.imagen) {
+      formData.append("imagen", newPost.imagen);
     }
-  };
+
+    if (newPost.imagenes && newPost.imagenes.length > 0) {
+      newPost.imagenes.forEach((file) => {
+        formData.append("imagenes", file);
+      });
+    }
+
+    const data = await crearPublicacion(formData, token);
+
+    await cargarPublicaciones();
+
+    return {
+      ok: true,
+      message: data.message || "Publicación creada correctamente.",
+    };
+  } catch (error) {
+    return manejarError(error);
+  }
+};
 
   const updatePost = async (postId, postData) => {
     if (!user || !token) {
