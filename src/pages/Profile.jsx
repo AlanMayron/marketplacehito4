@@ -3,6 +3,26 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { categoriasMock } from "../data/mockData";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBoxOpen,
+  faCalendarDays,
+  faDollarSign,
+  faEnvelope,
+  faFloppyDisk,
+  faHeart,
+  faImage,
+  faLocationDot,
+  faMessage,
+  faPen,
+  faPhone,
+  faPlus,
+  faTag,
+  faTrash,
+  faUser,
+  faUserGear,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 
 const Profile = () => {
   const {
@@ -45,12 +65,20 @@ const Profile = () => {
     }
   }, [user]);
 
+  const userId = user?.id || user?.usuario_id;
+
   const myPosts = publicaciones.filter((post) => {
-    return Number(post.usuarioId) === Number(user?.id);
+    const postUserId =
+      post.usuarioId || post.usuario_id || post.user_id || post.vendedor_id;
+
+    return Number(postUserId) === Number(userId);
   });
 
   const receivedMessages = mensajes.filter((mensaje) => {
-    return Number(mensaje.vendedorId) === Number(user?.id);
+    const vendedorId =
+      mensaje.vendedorId || mensaje.vendedor_id || mensaje.usuario_vendedor_id;
+
+    return Number(vendedorId) === Number(userId);
   });
 
   const handleProfileChange = (e) => {
@@ -109,7 +137,9 @@ const Profile = () => {
   };
 
   const startEditPost = (post) => {
-    setEditingPostId(post.id);
+    const postId = post.id || post.publicacion_id;
+
+    setEditingPostId(postId);
     setError("");
     setSuccess("");
 
@@ -163,7 +193,7 @@ const Profile = () => {
 
     const result = await updatePost(editingPostId, {
       titulo: postForm.titulo.trim(),
-      precio: postForm.precio,
+      precio: Number(postForm.precio),
       categoria: postForm.categoria,
       ubicacion: postForm.ubicacion.trim(),
       descripcion: postForm.descripcion.trim(),
@@ -203,85 +233,137 @@ const Profile = () => {
   };
 
   return (
-    <section className="profile-layout">
-      <aside className="panel profile-card">
-        <div className="avatar"></div>
+    <section className="profile-page-modern">
+      <aside className="profile-sidebar-modern">
+        <div className="panel profile-card-modern">
+          <div className="profile-cover"></div>
 
-        {!isEditingProfile ? (
-          <>
-            <h2>{user?.nombre}</h2>
-            <p>{user?.email}</p>
-            <p>{user?.telefono}</p>
+          <div className="profile-avatar-modern">
+            <FontAwesomeIcon icon={faUser} />
+          </div>
 
-            <button
-              className="btn-primary full-button"
-              type="button"
-              onClick={() => setIsEditingProfile(true)}
-            >
-              Editar perfil
-            </button>
-          </>
-        ) : (
-          <form className="profile-edit-form" onSubmit={handleProfileSubmit}>
-            <div className="form-group">
-              <label>Nombre</label>
-              <input
-                type="text"
-                name="nombre"
-                value={profileForm.nombre}
-                onChange={handleProfileChange}
-                required
-              />
-            </div>
+          {!isEditingProfile ? (
+            <>
+              <h2>{user?.nombre || "Usuario Marketplace"}</h2>
 
-            <div className="form-group">
-              <label>Correo</label>
-              <input
-                type="email"
-                name="email"
-                value={profileForm.email}
-                onChange={handleProfileChange}
-                required
-              />
-            </div>
+              <p className="profile-main-email">
+                <FontAwesomeIcon icon={faEnvelope} />
+                {user?.email}
+              </p>
 
-            <div className="form-group">
-              <label>Teléfono</label>
-              <input
-                type="text"
-                name="telefono"
-                value={profileForm.telefono}
-                onChange={handleProfileChange}
-                required
-              />
-            </div>
+              <p className="profile-main-email">
+                <FontAwesomeIcon icon={faPhone} />
+                {user?.telefono || "Sin teléfono"}
+              </p>
 
-            <button className="btn-primary full-button" type="submit">
-              Guardar cambios
-            </button>
+              <button
+                className="btn-primary full-button"
+                type="button"
+                onClick={() => setIsEditingProfile(true)}
+              >
+                <FontAwesomeIcon icon={faUserGear} />
+                Editar perfil
+              </button>
+            </>
+          ) : (
+            <form className="profile-edit-form-modern" onSubmit={handleProfileSubmit}>
+              <div className="form-group">
+                <label>
+                  <FontAwesomeIcon icon={faUser} />
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={profileForm.nombre}
+                  onChange={handleProfileChange}
+                  required
+                />
+              </div>
 
-            <button
-              className="btn-light full-button filter-clear"
-              type="button"
-              onClick={handleCancelProfile}
-            >
-              Cancelar
-            </button>
-          </form>
-        )}
+              <div className="form-group">
+                <label>
+                  <FontAwesomeIcon icon={faEnvelope} />
+                  Correo
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={profileForm.email}
+                  onChange={handleProfileChange}
+                  required
+                />
+              </div>
 
-        <div className="summary-list">
+              <div className="form-group">
+                <label>
+                  <FontAwesomeIcon icon={faPhone} />
+                  Teléfono
+                </label>
+                <input
+                  type="text"
+                  name="telefono"
+                  value={profileForm.telefono}
+                  onChange={handleProfileChange}
+                  required
+                />
+              </div>
+
+              <button className="btn-primary full-button" type="submit">
+                <FontAwesomeIcon icon={faFloppyDisk} />
+                Guardar cambios
+              </button>
+
+              <button
+                className="btn-light full-button"
+                type="button"
+                onClick={handleCancelProfile}
+              >
+                <FontAwesomeIcon icon={faXmark} />
+                Cancelar
+              </button>
+            </form>
+          )}
+        </div>
+
+        <div className="panel profile-stats-modern">
           <h3>Resumen</h3>
-          <p>Publicaciones activas: {myPosts.length}</p>
-          <p>Favoritos: {favoriteIds.length}</p>
-          <p>Mensajes recibidos: {receivedMessages.length}</p>
+
+          <div className="profile-stat-item">
+            <FontAwesomeIcon icon={faBoxOpen} />
+            <div>
+              <strong>{myPosts.length}</strong>
+              <span>Publicaciones</span>
+            </div>
+          </div>
+
+          <div className="profile-stat-item">
+            <FontAwesomeIcon icon={faHeart} />
+            <div>
+              <strong>{favoriteIds.length}</strong>
+              <span>Favoritos</span>
+            </div>
+          </div>
+
+          <div className="profile-stat-item">
+            <FontAwesomeIcon icon={faMessage} />
+            <div>
+              <strong>{receivedMessages.length}</strong>
+              <span>Mensajes recibidos</span>
+            </div>
+          </div>
         </div>
       </aside>
 
-      <div className="panel my-posts">
-        <div className="posts-header">
-          <h1>Mis publicaciones</h1>
+      <div className="panel profile-content-modern">
+        <div className="profile-content-header">
+          <div>
+            <h1>Mis publicaciones</h1>
+            <p>Administra tus productos publicados en el marketplace.</p>
+          </div>
+
           <Link to="/create-post" className="btn-primary">
+            <FontAwesomeIcon icon={faPlus} />
             Crear nueva
           </Link>
         </div>
@@ -290,41 +372,111 @@ const Profile = () => {
         {success && <p className="success-message">{success}</p>}
 
         {myPosts.length === 0 ? (
-          <p className="empty-state">Aún no tienes publicaciones creadas.</p>
+          <div className="empty-home">
+            <FontAwesomeIcon icon={faBoxOpen} />
+            <h3>Aún no tienes publicaciones</h3>
+            <p>Crea tu primera publicación para comenzar a vender.</p>
+
+            <Link to="/create-post" className="btn-primary">
+              <FontAwesomeIcon icon={faPlus} />
+              Crear publicación
+            </Link>
+          </div>
         ) : (
-          myPosts.map((post) => (
-            <div className="post-row" key={post.id}>
-              <div className="row-image"></div>
+          <div className="profile-posts-list">
+            {myPosts.map((post) => {
+              const postId = post.id || post.publicacion_id;
 
-              <div>
-                <h3>{post.titulo}</h3>
-                <p>${Number(post.precio).toLocaleString("es-CL")}</p>
-              </div>
+              return (
+                <article className="profile-post-card" key={postId}>
+                  <div className="profile-post-image">
+                    {post.imagen ? (
+                      <img src={post.imagen} alt={post.titulo} />
+                    ) : (
+                      <FontAwesomeIcon icon={faImage} />
+                    )}
+                  </div>
 
-              <strong
-                className={
-                  post.estado === "Activa" ? "status-active" : "status-paused"
-                }
-              >
-                {post.estado}
-              </strong>
+                  <div className="profile-post-info">
+                    <div className="profile-post-top">
+                      <span
+                        className={
+                          post.estado === "Activa"
+                            ? "status-pill status-active-modern"
+                            : "status-pill status-paused-modern"
+                        }
+                      >
+                        {post.estado || "Activa"}
+                      </span>
 
-              <div className="row-actions">
-                <button type="button" onClick={() => startEditPost(post)}>
-                  Editar
-                </button>
-                <span>|</span>
-                <button type="button" onClick={() => handleDeletePost(post.id)}>
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          ))
+                      <span className="profile-post-date">
+                        <FontAwesomeIcon icon={faCalendarDays} />
+                        {post.fecha || "Reciente"}
+                      </span>
+                    </div>
+
+                    <h3>{post.titulo}</h3>
+
+                    <p className="profile-post-price">
+                      <FontAwesomeIcon icon={faDollarSign} />
+                      {Number(post.precio || 0).toLocaleString("es-CL")}
+                    </p>
+
+                    <div className="profile-post-meta">
+                      <span>
+                        <FontAwesomeIcon icon={faTag} />
+                        {post.categoria || "Sin categoría"}
+                      </span>
+
+                      <span>
+                        <FontAwesomeIcon icon={faLocationDot} />
+                        {post.ubicacion || "Sin ubicación"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="profile-post-actions">
+                    <Link to={`/posts/${postId}`} className="small-button">
+                      Ver
+                    </Link>
+
+                    <button type="button" onClick={() => startEditPost(post)}>
+                      <FontAwesomeIcon icon={faPen} />
+                      Editar
+                    </button>
+
+                    <button
+                      type="button"
+                      className="delete-action"
+                      onClick={() => handleDeletePost(postId)}
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                      Eliminar
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         )}
 
         {editingPostId && (
-          <form className="edit-post-panel" onSubmit={handlePostSubmit}>
-            <h2>Editar publicación</h2>
+          <form className="edit-post-panel edit-post-panel-modern" onSubmit={handlePostSubmit}>
+            <div className="edit-post-header">
+              <div>
+                <h2>Editar publicación</h2>
+                <p>Actualiza los datos principales de tu producto.</p>
+              </div>
+
+              <button
+                className="btn-light"
+                type="button"
+                onClick={() => setEditingPostId(null)}
+              >
+                <FontAwesomeIcon icon={faXmark} />
+                Cerrar
+              </button>
+            </div>
 
             <div className="create-form-grid">
               <div>
@@ -405,15 +557,8 @@ const Profile = () => {
             </div>
 
             <button className="btn-primary" type="submit">
+              <FontAwesomeIcon icon={faFloppyDisk} />
               Guardar publicación
-            </button>
-
-            <button
-              className="btn-light edit-cancel"
-              type="button"
-              onClick={() => setEditingPostId(null)}
-            >
-              Cancelar edición
             </button>
           </form>
         )}
