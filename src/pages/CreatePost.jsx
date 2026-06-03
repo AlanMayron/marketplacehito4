@@ -2,10 +2,24 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { categoriasMock } from "../data/mockData";
 import { useAppContext } from "../context/AppContext";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCamera,
+  faPenToSquare,
+  faDollarSign,
+  faTag,
+  faLocationDot,
+  faPlus,
+  faHeading,
+  faAlignLeft,
+  faSpinner,
+} from "@fortawesome/free-solid-svg-icons";
 
 const CreatePost = () => {
   const navigate = useNavigate();
   const { addPost } = useAppContext();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     titulo: "",
@@ -26,10 +40,20 @@ const CreatePost = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (Number(form.precio) <= 0) {
+      alert("El precio debe ser mayor a 0.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     const result = await addPost({
       ...form,
       precio: Number(form.precio),
+      imagen: form.imagen.trim(),
     });
+
+    setIsSubmitting(false);
 
     if (result.ok) {
       navigate("/profile");
@@ -40,7 +64,11 @@ const CreatePost = () => {
 
   return (
     <section className="panel create-post-panel">
-      <h1 className="page-title">Nueva publicación</h1>
+      <h1 className="page-title">
+        <FontAwesomeIcon icon={faPenToSquare} />
+        Nueva publicación
+      </h1>
+
       <p className="subtitle-left">
         Ingresa los datos del producto que quieres vender
       </p>
@@ -48,7 +76,10 @@ const CreatePost = () => {
       <form className="create-form-grid" onSubmit={handleSubmit}>
         <div>
           <div className="form-group">
-            <label>Título</label>
+            <label className="label-with-icon">
+              <FontAwesomeIcon icon={faHeading} />
+              Título
+            </label>
             <input
               type="text"
               name="titulo"
@@ -60,19 +91,26 @@ const CreatePost = () => {
           </div>
 
           <div className="form-group">
-            <label>Precio</label>
+            <label className="label-with-icon">
+              <FontAwesomeIcon icon={faDollarSign} />
+              Precio
+            </label>
             <input
               type="number"
               name="precio"
               placeholder="Ej: 250000"
               value={form.precio}
               onChange={handleChange}
+              min="1"
               required
             />
           </div>
 
           <div className="form-group">
-            <label>Categoría</label>
+            <label className="label-with-icon">
+              <FontAwesomeIcon icon={faTag} />
+              Categoría
+            </label>
             <select
               name="categoria"
               value={form.categoria}
@@ -89,7 +127,10 @@ const CreatePost = () => {
           </div>
 
           <div className="form-group">
-            <label>Ubicación</label>
+            <label className="label-with-icon">
+              <FontAwesomeIcon icon={faLocationDot} />
+              Ubicación
+            </label>
             <input
               type="text"
               name="ubicacion"
@@ -103,14 +144,36 @@ const CreatePost = () => {
 
         <div>
           <div className="form-group">
-            <label>Imagen del producto</label>
+            <label className="label-with-icon">
+              <FontAwesomeIcon icon={faCamera} />
+              Imagen del producto
+            </label>
+
             <div className="upload-box">
-              Arrastrar imagen o seleccionar archivo
+              <div className="upload-box-content">
+                <FontAwesomeIcon icon={faCamera} />
+                <span>Agrega una imagen referencial</span>
+                <small>
+                  Por ahora puedes pegar una URL de imagen. Luego lo cambiamos a
+                  carga real con Cloudinary.
+                </small>
+              </div>
+
+              <input
+                type="url"
+                name="imagen"
+                placeholder="https://ejemplo.com/imagen.jpg"
+                value={form.imagen}
+                onChange={handleChange}
+              />
             </div>
           </div>
 
           <div className="form-group">
-            <label>Descripción</label>
+            <label className="label-with-icon">
+              <FontAwesomeIcon icon={faAlignLeft} />
+              Descripción
+            </label>
             <textarea
               name="descripcion"
               placeholder="Describe estado, características y detalles..."
@@ -120,8 +183,22 @@ const CreatePost = () => {
             />
           </div>
 
-          <button className="btn-primary full-button" type="submit">
-            Publicar producto
+          <button
+            className="btn-primary full-button"
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <FontAwesomeIcon icon={faSpinner} spin />
+                Publicando...
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faPlus} />
+                Publicar producto
+              </>
+            )}
           </button>
         </div>
       </form>
