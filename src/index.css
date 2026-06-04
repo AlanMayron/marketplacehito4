@@ -2215,3 +2215,27 @@ textarea {
   height: 100%;
   object-fit: cover;
 }
+
+.detail-thumbs-modern button {
+  height: 88px;
+  border-radius: 16px;
+  background: #f1f5f9;
+  border: 2px solid #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8ea0b6;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+}
+
+.detail-thumbs-modern button.thumb-active {
+  border-color: var(--primary);
+}
+
+.detail-thumbs-modern button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

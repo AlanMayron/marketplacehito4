@@ -226,43 +226,45 @@ const Profile = () => {
   };
 
   const handleEditImagesChange = (e) => {
-    const selectedFiles = Array.from(e.target.files || []);
+  const selectedFiles = Array.from(e.target.files || []);
 
-    if (selectedFiles.length === 0) {
-      return;
-    }
+  if (selectedFiles.length === 0) {
+    return;
+  }
 
-    const validFiles = selectedFiles.filter((file) =>
-      ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type)
-    );
+  const validFiles = selectedFiles.filter((file) =>
+    ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type)
+  );
 
-    if (validFiles.length !== selectedFiles.length) {
-      toast.error("Solo puedes subir imágenes JPG, PNG o WEBP.");
-      e.target.value = "";
-      return;
-    }
-
-    const combinedFiles = [...editImages, ...validFiles];
-
-    if (combinedFiles.length > 3) {
-      toast.error("Puedes subir máximo 3 imágenes por publicación.");
-      e.target.value = "";
-      return;
-    }
-
-    const maxSize = 5 * 1024 * 1024;
-    const hasLargeFile = combinedFiles.some((file) => file.size > maxSize);
-
-    if (hasLargeFile) {
-      toast.error("Cada imagen debe pesar máximo 5 MB.");
-      e.target.value = "";
-      return;
-    }
-
-    setEditImages(combinedFiles);
-    setRemoveCurrentImages(true);
+  if (validFiles.length !== selectedFiles.length) {
+    toast.error("Solo puedes subir imágenes JPG, PNG o WEBP.");
     e.target.value = "";
-  };
+    return;
+  }
+
+  const combinedFiles = [...editImages, ...validFiles];
+
+  const baseImagesCount = removeCurrentImages ? 0 : currentImages.length;
+  const totalImages = baseImagesCount + combinedFiles.length;
+
+  if (totalImages > 3) {
+    toast.error("Puedes tener máximo 3 imágenes por publicación.");
+    e.target.value = "";
+    return;
+  }
+
+  const maxSize = 5 * 1024 * 1024;
+  const hasLargeFile = combinedFiles.some((file) => file.size > maxSize);
+
+  if (hasLargeFile) {
+    toast.error("Cada imagen debe pesar máximo 5 MB.");
+    e.target.value = "";
+    return;
+  }
+
+  setEditImages(combinedFiles);
+  e.target.value = "";
+};
 
   const removeEditImage = (indexToRemove) => {
     setEditImages((currentImagesState) =>

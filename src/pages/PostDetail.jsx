@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -33,10 +33,39 @@ const PostDetail = () => {
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const product = publicaciones.find(
     (item) => Number(item.id || item.publicacion_id) === Number(id)
   );
+
+  const galleryImages = useMemo(() => {
+    if (!product) {
+      return [];
+    }
+
+    if (Array.isArray(product.imagenes) && product.imagenes.length > 0) {
+      return product.imagenes
+        .map((img, index) => ({
+          id: img.id || index,
+          url: img.url || img.imagen_url || img.imagenUrl || "",
+          orden: img.orden || index + 1,
+        }))
+        .filter((img) => img.url);
+    }
+
+    if (product.imagen) {
+      return [
+        {
+          id: "principal",
+          url: product.imagen,
+          orden: 1,
+        },
+      ];
+    }
+
+    return [];
+  }, [product]);
 
   if (!product) {
     return (
@@ -56,66 +85,70 @@ const PostDetail = () => {
   const productId = product.id || product.publicacion_id;
   const userId = user?.id || user?.usuario_id;
   const productUserId =
-    product.usuarioId || product.usuario_id || product.user_id || product.vendedor_id;
+    product.usuarioId ||
+    product.usuario_id ||
+    product.user_id ||
+    product.vendedor_id;
 
   const currentFavorite = isFavorite ? isFavorite(productId) : false;
   const isOwnPost = Number(userId) === Number(productUserId);
-
   const precio = Number(product.precio || 0).toLocaleString("es-CL");
+  const activeImage = galleryImages[activeImageIndex] || galleryImages[0];
 
   const handleFavorite = async () => {
-  setError("");
-  setFeedback("");
+    setError("");
+    setFeedback("");
 
-  if (!isAuthenticated) {
-    toast.error("Debes iniciar sesión para guardar favoritos.");
-    return;
-  }
+    if (!isAuthenticated) {
+      toast.error("Debes iniciar sesión para guardar favoritos.");
+      return;
+    }
 
-  const result = await toggleFavorito(productId);
+    const result = await toggleFavorito(productId);
 
-  if (!result.ok) {
-    setError(result.message);
-    toast.error(result.message);
-    return;
-  }
+    if (!result.ok) {
+      setError(result.message);
+      toast.error(result.message);
+      return;
+    }
 
-  setFeedback(result.message);
-  toast.success(result.message);
-};
+    setFeedback(result.message);
+    toast.success(result.message);
+  };
 
   const handleSendMessage = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (mensaje.trim().length < 5) {
-    const message = "El mensaje debe tener al menos 5 caracteres.";
-    setError(message);
+    if (mensaje.trim().length < 5) {
+      const message = "El mensaje debe tener al menos 5 caracteres.";
+      setError(message);
+      setFeedback("");
+      toast.error(message);
+      return;
+    }
+
+    setIsSending(true);
+    setError("");
     setFeedback("");
-    toast.error(message);
-    return;
-  }
 
-  setIsSending(true);
-  setError("");
-  setFeedback("");
+    const result = await addMessage({
+      publicacionId: productId,
+      mensaje: mensaje.trim(),
+    });
 
-  const result = await addMessage({
-    publicacionId: productId,
-    mensaje: mensaje.trim(),
-  });
+    setIsSending(false);
 
-  setIsSending(false);
+    if (!result.ok) {
+      setError(result.message);
+      toast.error(result.message);
+      return;
+    }
 
-  if (!result.ok) {
-    setError(result.message);
-    toast.error(result.message);
-    return;
-  }
+    setFeedback(result.message);
+    toast.success(result.message);
+    setMensaje("");
+  };
 
-  setFeedback(result.message);
-  toast.success(result.message);
-  setMensaje("");
-};
   return (
     <section className="detail-page">
       <Link to="/posts" className="back-link">
@@ -126,8 +159,8 @@ const PostDetail = () => {
       <div className="detail-layout detail-layout-modern">
         <div className="panel detail-gallery detail-gallery-modern">
           <div className="detail-main-image detail-main-image-modern">
-            {product.imagen ? (
-              <img src={product.imagen} alt={product.titulo} />
+            {activeImage ? (
+              <img src={activeImage.url} alt={product.titulo} />
             ) : (
               <div className="detail-placeholder">
                 <FontAwesomeIcon icon={faImage} />
@@ -142,21 +175,30 @@ const PostDetail = () => {
           </div>
 
           <div className="detail-thumbs-modern">
-            <div className="thumb-active">
-              {product.imagen ? (
-                <img src={product.imagen} alt={product.titulo} />
-              ) : (
-                <FontAwesomeIcon icon={faImage} />
-              )}
-            </div>
-
-            <div>
-              <FontAwesomeIcon icon={faImage} />
-            </div>
-
-            <div>
-              <FontAwesomeIcon icon={faImage} />
-            </div>
+            {galleryImages.length > 0 ? (
+              galleryImages.map((image, index) => (
+                <button
+                  key={image.id || image.url}
+                  type="button"
+                  className={index === activeImageIndex ? "thumb-active" : ""}
+                  onClick={() => setActiveImageIndex(index)}
+                >
+                  <img src={image.url} alt={`Imagen ${index + 1}`} />
+                </button>
+              ))
+            ) : (
+              <>
+                <div>
+                  <FontAwesomeIcon icon={faImage} />
+                </div>
+                <div>
+                  <FontAwesomeIcon icon={faImage} />
+                </div>
+                <div>
+                  <FontAwesomeIcon icon={faImage} />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="detail-safety-card">
@@ -178,16 +220,18 @@ const PostDetail = () => {
               {product.categoria || "Sin categoría"}
             </span>
 
-            <button
-              className={`detail-favorite-button ${
-                currentFavorite ? "is-favorite" : ""
-              }`}
-              type="button"
-              onClick={handleFavorite}
-            >
-              <FontAwesomeIcon icon={faHeart} />
-              {currentFavorite ? "En favoritos" : "Guardar"}
-            </button>
+            {!isOwnPost && (
+              <button
+                className={`detail-favorite-button ${
+                  currentFavorite ? "is-favorite" : ""
+                }`}
+                type="button"
+                onClick={handleFavorite}
+              >
+                <FontAwesomeIcon icon={faHeart} />
+                {currentFavorite ? "En favoritos" : "Guardar"}
+              </button>
+            )}
           </div>
 
           <h1>{product.titulo}</h1>
@@ -240,7 +284,10 @@ const PostDetail = () => {
               Iniciar sesión para contactar
             </Link>
           ) : isOwnPost ? null : (
-            <form className="contact-form contact-form-modern" onSubmit={handleSendMessage}>
+            <form
+              className="contact-form contact-form-modern"
+              onSubmit={handleSendMessage}
+            >
               <label>
                 <FontAwesomeIcon icon={faEnvelope} />
                 Mensaje al vendedor
