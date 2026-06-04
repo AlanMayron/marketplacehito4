@@ -265,8 +265,15 @@ const PostDetail = () => {
 
           <div className="seller-box seller-box-modern">
             <div className="seller-avatar">
-              <FontAwesomeIcon icon={faUser} />
-            </div>
+  {product.vendedorAvatarUrl || product.vendedor_avatar_url ? (
+    <img
+      src={product.vendedorAvatarUrl || product.vendedor_avatar_url}
+      alt={product.vendedor || "Vendedor"}
+    />
+  ) : (
+    <FontAwesomeIcon icon={faUser} />
+  )}
+</div>
 
             <div>
               <span>Vendedor</span>
