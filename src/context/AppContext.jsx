@@ -11,6 +11,7 @@ import {
 import toast from "react-hot-toast";
 import {
   actualizarPerfil,
+  actualizarAvatarPerfil,
   actualizarPublicacion,
   agregarFavorito,
   crearPublicacion,
@@ -448,6 +449,28 @@ export const AppProvider = ({ children }) => {
       return manejarError(error);
     }
   };
+  const updateAvatar = async (file) => {
+  if (!user || !token) {
+    return {
+      ok: false,
+      message: "Debes iniciar sesión.",
+    };
+  }
+
+  try {
+    const data = await actualizarAvatarPerfil(file, token);
+
+    setUser(data.user);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    return {
+      ok: true,
+      message: data.message || "Foto de perfil actualizada correctamente.",
+    };
+  } catch (error) {
+    return manejarError(error);
+  }
+};
 
   return (
     <AppContext.Provider
@@ -464,6 +487,7 @@ export const AppProvider = ({ children }) => {
         login,
         logout,
         updateProfile,
+        updateAvatar,
         addPost,
         updatePost,
         deletePost,

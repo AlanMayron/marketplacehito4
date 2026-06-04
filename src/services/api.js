@@ -133,3 +133,24 @@ export const responderMensaje = (mensajeId, respuesta, token) =>
     headers: authHeaders(token),
     body: JSON.stringify({ respuesta }),
   });
+
+  export const actualizarAvatarPerfil = async (file, token) => {
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  const response = await fetch(`${API_URL}/perfil/avatar`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "Error al actualizar foto de perfil");
+  }
+
+  return data;
+};

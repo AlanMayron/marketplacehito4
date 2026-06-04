@@ -33,6 +33,7 @@ const Profile = () => {
     favoriteIds,
     mensajes,
     updateProfile,
+    updateAvatar,
     updatePost,
     deletePost,
   } = useAppContext();
@@ -41,6 +42,11 @@ const Profile = () => {
   const [editingPostId, setEditingPostId] = useState(null);
   const [editImages, setEditImages] = useState([]);
   const [removeCurrentImages, setRemoveCurrentImages] = useState(false);
+
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -59,6 +65,10 @@ const Profile = () => {
     estado: "Activa",
   });
 
+  const publicacionesList = Array.isArray(publicaciones) ? publicaciones : [];
+  const mensajesList = Array.isArray(mensajes) ? mensajes : [];
+  const favoritosList = Array.isArray(favoriteIds) ? favoriteIds : [];
+
   useEffect(() => {
     if (user) {
       setProfileForm({
@@ -71,21 +81,21 @@ const Profile = () => {
 
   const userId = user?.id || user?.usuario_id;
 
-  const myPosts = publicaciones.filter((post) => {
+  const myPosts = publicacionesList.filter((post) => {
     const postUserId =
       post.usuarioId || post.usuario_id || post.user_id || post.vendedor_id;
 
     return Number(postUserId) === Number(userId);
   });
 
-  const receivedMessages = mensajes.filter((mensaje) => {
+  const receivedMessages = mensajesList.filter((mensaje) => {
     const vendedorId =
       mensaje.vendedorId || mensaje.vendedor_id || mensaje.usuario_vendedor_id;
 
     return Number(vendedorId) === Number(userId);
   });
 
-  const editingPost = publicaciones.find((post) => {
+  const editingPost = publicacionesList.find((post) => {
     const postId = post.id || post.publicacion_id;
     return Number(postId) === Number(editingPostId);
   });
@@ -96,11 +106,13 @@ const Profile = () => {
     }
 
     if (Array.isArray(editingPost.imagenes) && editingPost.imagenes.length > 0) {
-      return editingPost.imagenes.map((img, index) => ({
-        id: img.id || index,
-        url: img.url || img.imagen_url || img.imagenUrl || "",
-        orden: img.orden || index + 1,
-      }));
+      return editingPost.imagenes
+        .map((img, index) => ({
+          id: img.id || index,
+          url: img.url || img.imagen_url || img.imagenUrl || "",
+          orden: img.orden || index + 1,
+        }))
+        .filter((img) => img.url);
     }
 
     if (editingPost.imagen) {
@@ -180,12 +192,71 @@ const Profile = () => {
     setIsEditingProfile(false);
     setError("");
     setSuccess("");
+    setAvatarFile(null);
+    setAvatarPreview("");
 
     setProfileForm({
       nombre: user?.nombre || "",
       email: user?.email || "",
       telefono: user?.telefono || "",
     });
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Solo puedes subir imágenes JPG, PNG o WEBP.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La foto de perfil debe pesar máximo 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleAvatarSubmit = async () => {
+    if (!avatarFile) {
+      toast.error("Selecciona una imagen primero.");
+      return;
+    }
+
+    if (!updateAvatar) {
+      toast.error("La función para actualizar avatar no está disponible.");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    const result = await updateAvatar(avatarFile);
+
+    setIsUploadingAvatar(false);
+
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
+    }
+
+    toast.success(result.message);
+    setAvatarFile(null);
+    setAvatarPreview("");
+  };
+
+  const cancelAvatarPreview = () => {
+    setAvatarFile(null);
+    setAvatarPreview("");
   };
 
   const startEditPost = (post) => {
@@ -226,45 +297,45 @@ const Profile = () => {
   };
 
   const handleEditImagesChange = (e) => {
-  const selectedFiles = Array.from(e.target.files || []);
+    const selectedFiles = Array.from(e.target.files || []);
 
-  if (selectedFiles.length === 0) {
-    return;
-  }
+    if (selectedFiles.length === 0) {
+      return;
+    }
 
-  const validFiles = selectedFiles.filter((file) =>
-    ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type)
-  );
+    const validFiles = selectedFiles.filter((file) =>
+      ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type)
+    );
 
-  if (validFiles.length !== selectedFiles.length) {
-    toast.error("Solo puedes subir imágenes JPG, PNG o WEBP.");
+    if (validFiles.length !== selectedFiles.length) {
+      toast.error("Solo puedes subir imágenes JPG, PNG o WEBP.");
+      e.target.value = "";
+      return;
+    }
+
+    const combinedFiles = [...editImages, ...validFiles];
+
+    const baseImagesCount = removeCurrentImages ? 0 : currentImages.length;
+    const totalImages = baseImagesCount + combinedFiles.length;
+
+    if (totalImages > 3) {
+      toast.error("Puedes tener máximo 3 imágenes por publicación.");
+      e.target.value = "";
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    const hasLargeFile = combinedFiles.some((file) => file.size > maxSize);
+
+    if (hasLargeFile) {
+      toast.error("Cada imagen debe pesar máximo 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setEditImages(combinedFiles);
     e.target.value = "";
-    return;
-  }
-
-  const combinedFiles = [...editImages, ...validFiles];
-
-  const baseImagesCount = removeCurrentImages ? 0 : currentImages.length;
-  const totalImages = baseImagesCount + combinedFiles.length;
-
-  if (totalImages > 3) {
-    toast.error("Puedes tener máximo 3 imágenes por publicación.");
-    e.target.value = "";
-    return;
-  }
-
-  const maxSize = 5 * 1024 * 1024;
-  const hasLargeFile = combinedFiles.some((file) => file.size > maxSize);
-
-  if (hasLargeFile) {
-    toast.error("Cada imagen debe pesar máximo 5 MB.");
-    e.target.value = "";
-    return;
-  }
-
-  setEditImages(combinedFiles);
-  e.target.value = "";
-};
+  };
 
   const removeEditImage = (indexToRemove) => {
     setEditImages((currentImagesState) =>
@@ -382,12 +453,49 @@ const Profile = () => {
           <div className="profile-cover"></div>
 
           <div className="profile-avatar-modern">
-            {user?.avatar_url || user?.avatarUrl ? (
+            {avatarPreview ? (
+              <img src={avatarPreview} alt="Vista previa perfil" />
+            ) : user?.avatar_url || user?.avatarUrl ? (
               <img src={user.avatar_url || user.avatarUrl} alt={user.nombre} />
             ) : (
               <FontAwesomeIcon icon={faUser} />
             )}
           </div>
+
+          {isEditingProfile && (
+            <div className="avatar-upload-panel">
+              <label className="avatar-upload-button">
+                <FontAwesomeIcon icon={faUpload} />
+                Cambiar foto
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={handleAvatarChange}
+                />
+              </label>
+
+              {avatarFile && (
+                <div className="avatar-actions">
+                  <button
+                    className="btn-primary full-button"
+                    type="button"
+                    onClick={handleAvatarSubmit}
+                    disabled={isUploadingAvatar}
+                  >
+                    {isUploadingAvatar ? "Subiendo..." : "Guardar foto"}
+                  </button>
+
+                  <button
+                    className="btn-light full-button"
+                    type="button"
+                    onClick={cancelAvatarPreview}
+                  >
+                    Cancelar foto
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {!isEditingProfile ? (
             <>
@@ -490,7 +598,7 @@ const Profile = () => {
           <div className="profile-stat-item">
             <FontAwesomeIcon icon={faHeart} />
             <div>
-              <strong>{favoriteIds.length}</strong>
+              <strong>{favoritosList.length}</strong>
               <span>Favoritos</span>
             </div>
           </div>
@@ -630,7 +738,11 @@ const Profile = () => {
                 <p>Actualiza los datos principales de tu producto.</p>
               </div>
 
-              <button className="btn-light" type="button" onClick={cancelEditPost}>
+              <button
+                className="btn-light"
+                type="button"
+                onClick={cancelEditPost}
+              >
                 <FontAwesomeIcon icon={faXmark} />
                 Cerrar
               </button>
@@ -763,7 +875,7 @@ const Profile = () => {
                     <FontAwesomeIcon icon={faUpload} />
                     <strong>Seleccionar nuevas imágenes</strong>
                     <span>
-                      Si subes nuevas imágenes, reemplazarán las actuales.
+                      Puedes agregar nuevas imágenes hasta completar 3 fotos.
                     </span>
                     <input
                       type="file"

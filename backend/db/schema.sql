@@ -66,3 +66,7 @@ CREATE TABLE IF NOT EXISTS publicacion_imagenes (
   orden INTEGER DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE usuarios
+ADD COLUMN IF NOT EXISTS avatar_url TEXT,
+ADD COLUMN IF NOT EXISTS avatar_public_id TEXT;
