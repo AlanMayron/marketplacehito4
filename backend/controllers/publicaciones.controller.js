@@ -44,7 +44,6 @@ const publicacionSelect = `
     u.nombre AS vendedor,
     u.email AS "vendedorEmail",
     u.telefono AS "vendedorTelefono"
-    u.avatar_url AS "vendedorAvatarUrl"
   FROM publicaciones p
   INNER JOIN categorias c ON c.id = p.categoria_id
   INNER JOIN usuarios u ON u.id = p.usuario_id
